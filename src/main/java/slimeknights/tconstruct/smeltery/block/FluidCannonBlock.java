@@ -1,6 +1,5 @@
 package slimeknights.tconstruct.smeltery.block;
 
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -32,11 +31,8 @@ import static net.minecraft.world.level.block.state.properties.BlockStatePropert
 
 /** Tank block which also shoots a fluid */
 public class FluidCannonBlock extends SearedTankBlock implements IFluidCannon, Equipable {
-  @Getter
   private final float power;
-  @Getter
   private final float velocity;
-  @Getter
   private final float inaccuracy;
   public FluidCannonBlock(Properties properties, int capacity, float power, float velocity, float inaccuracy) {
     super(properties, capacity);
@@ -44,6 +40,21 @@ public class FluidCannonBlock extends SearedTankBlock implements IFluidCannon, E
     this.velocity = velocity;
     this.inaccuracy = inaccuracy;
     this.registerDefaultState(this.getStateDefinition().any().setValue(FACING, Direction.NORTH).setValue(TRIGGERED, false));
+  }
+
+  @Override
+  public float getPower() {
+    return power;
+  }
+
+  @Override
+  public float getVelocity() {
+    return velocity;
+  }
+
+  @Override
+  public float getInaccuracy() {
+    return inaccuracy;
   }
 
   @Override
@@ -57,9 +68,8 @@ public class FluidCannonBlock extends SearedTankBlock implements IFluidCannon, E
     builder.add(FACING, TRIGGERED);
   }
 
-  @Deprecated
   @Override
-  public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+  protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
     if (world.getBlockEntity(pos) instanceof FluidCannonBlockEntity cannon) {
       Vec3 location = hit.getLocation();
       boolean clickedTank = location.y - pos.getY() > 0.5;
@@ -69,7 +79,7 @@ public class FluidCannonBlock extends SearedTankBlock implements IFluidCannon, E
         double z = location.z - pos.getZ();
         clickedTank = 0.25 > x || x > 0.75 || 0.25 > z || z > 0.75;
       }
-      cannon.interact(player, hand, clickedTank);
+      cannon.interact(player, InteractionHand.MAIN_HAND, clickedTank);
     }
     return InteractionResult.SUCCESS;
   }

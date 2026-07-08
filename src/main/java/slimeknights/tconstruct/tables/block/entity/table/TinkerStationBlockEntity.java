@@ -2,6 +2,7 @@ package slimeknights.tconstruct.tables.block.entity.table;
 
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -11,13 +12,13 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.model.data.ModelData;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.event.EventHooks;
 import org.apache.commons.lang3.StringUtils;
 import slimeknights.mantle.util.RetexturedHelper;
 import slimeknights.tconstruct.TConstruct;
@@ -57,6 +58,9 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
   /** Last crafted crafting recipe */
   @Nullable @Getter
   private ITinkerStationRecipe lastRecipe;
+  /** ID of the last crafted recipe, used for syncing to clients (1.21: recipes no longer carry their own ID) */
+  @Nullable
+  private ResourceLocation lastRecipeId;
   /** Result inventory, lazy loads results */
   @Getter
   private final LazyResultContainer craftingResult;
@@ -86,7 +90,6 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
   public TinkerStationBlockEntity(BlockPos pos, BlockState state, int slots) {
     super(TinkerTables.tinkerStationTile.get(), pos, state, NAME, slots);
     this.itemHandler = new ConfigurableInvWrapperCapability(this, false, false);
-    this.itemHandlerCap = LazyOptional.of(() -> this.itemHandler);
     this.inventoryWrapper = new TinkerStationContainerWrapper(this);
     this.craftingResult = new LazyResultContainer(this);
   }
@@ -158,9 +161,12 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
 
       // first, try the cached recipe
       ITinkerStationRecipe recipe = lastRecipe;
+      ResourceLocation recipeId = lastRecipeId;
       // if it does not match, find a new recipe
       if (recipe == null || !recipe.matches(this.inventoryWrapper, this.level)) {
-        recipe = manager.getRecipeFor(TinkerRecipeTypes.TINKER_STATION.get(), this.inventoryWrapper, this.level).orElse(null);
+        RecipeHolder<ITinkerStationRecipe> holder = manager.getRecipeFor(TinkerRecipeTypes.TINKER_STATION.get(), this.inventoryWrapper, this.level).orElse(null);
+        recipe = holder == null ? null : holder.value();
+        recipeId = holder == null ? null : holder.id();
       }
 
       // if we have a recipe, fetch its result
@@ -169,6 +175,7 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
         // sync if the recipe is different
         if (lastRecipe != recipe) {
           this.lastRecipe = recipe;
+          this.lastRecipeId = recipeId;
           this.syncToRelevantPlayers(this::syncRecipe);
           needsSync = false;
         }
@@ -218,7 +225,7 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
 
     // fire crafting events
     resultItem.onCraftedBy(this.level, player, amount);
-    ForgeEventFactory.firePlayerCraftingEvent(player, resultItem, this.inventoryWrapper);
+    EventHooks.firePlayerCraftingEvent(player, resultItem, this.inventoryWrapper);
     this.playCraftSound(player);
 
     // fetch this before updating inputs so they can do input sensitive shrinking
@@ -236,7 +243,7 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
       if (tinkerable.getCount() <= shrinkToolSlot) {
         this.setItem(TINKER_SLOT, ItemStack.EMPTY);
       } else {
-        this.setItem(TINKER_SLOT, ItemHandlerHelper.copyStackWithSize(tinkerable, tinkerable.getCount() - shrinkToolSlot));
+        this.setItem(TINKER_SLOT, tinkerable.copyWithCount(tinkerable.getCount() - shrinkToolSlot));
       }
     }
     this.itemName = "";
@@ -293,17 +300,19 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
    */
   public void syncRecipe(Player player) {
     // must have a last recipe and a server level
-    if (this.lastRecipe != null && this.level != null && !this.level.isClientSide && player instanceof ServerPlayer server) {
-      TinkerNetwork.getInstance().sendTo(new UpdateTinkerStationRecipePacket(this.worldPosition, this.lastRecipe), server);
+    if (this.lastRecipe != null && this.lastRecipeId != null && this.level != null && !this.level.isClientSide && player instanceof ServerPlayer server) {
+      TinkerNetwork.getInstance().sendTo(new UpdateTinkerStationRecipePacket(this.worldPosition, this.lastRecipeId), server);
     }
   }
 
   /**
    * Updates the recipe from the server
+   * @param id      ID of the new recipe
    * @param recipe  New recipe
    */
-  public void updateRecipe(ITinkerStationRecipe recipe) {
+  public void updateRecipe(ResourceLocation id, ITinkerStationRecipe recipe) {
     this.lastRecipe = recipe;
+    this.lastRecipeId = id;
     this.craftingResult.clearContent();
   }
 
@@ -339,16 +348,16 @@ public class TinkerStationBlockEntity extends RetexturedTableBlockEntity impleme
   }
 
   @Override
-  public void saveSynced(CompoundTag tags) {
-    super.saveSynced(tags);
+  public void saveSynced(CompoundTag tags, HolderLookup.Provider registries) {
+    super.saveSynced(tags, registries);
     if (material != IMaterial.UNKNOWN_ID) {
       tags.putString(MATERIAL_TAG, material.toString());
     }
   }
 
   @Override
-  public void load(CompoundTag tags) {
-    super.load(tags);
+  public void loadAdditional(CompoundTag tags, HolderLookup.Provider registries) {
+    super.loadAdditional(tags, registries);
     if (tags.contains(MATERIAL_TAG, Tag.TAG_STRING)) {
       material = Objects.requireNonNullElse(MaterialVariantId.tryParse(tags.getString(MATERIAL_TAG)), IMaterial.UNKNOWN_ID);
       RetexturedHelper.onTextureUpdated(this);

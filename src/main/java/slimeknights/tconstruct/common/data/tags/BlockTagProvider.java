@@ -10,9 +10,9 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.data.BlockTagsProvider;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.data.BlockTagsProvider;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.registration.object.BuildingBlockObject;
 import slimeknights.mantle.registration.object.EnumObject;
@@ -51,8 +51,8 @@ import static net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL;
 import static net.minecraft.tags.BlockTags.NEEDS_DIAMOND_TOOL;
 import static net.minecraft.tags.BlockTags.NEEDS_IRON_TOOL;
 import static net.minecraft.tags.BlockTags.NEEDS_STONE_TOOL;
-import static net.minecraftforge.common.Tags.Blocks.NEEDS_GOLD_TOOL;
-import static net.minecraftforge.common.Tags.Blocks.NEEDS_NETHERITE_TOOL;
+import static net.neoforged.neoforge.common.Tags.Blocks.NEEDS_GOLD_TOOL;
+import static net.neoforged.neoforge.common.Tags.Blocks.NEEDS_NETHERITE_TOOL;
 import static slimeknights.mantle.Mantle.commonResource;
 import static slimeknights.tconstruct.common.TinkerTags.Blocks.MINEABLE_MELTING_BLACKLIST;
 import static slimeknights.tconstruct.common.TinkerTags.Blocks.UNREPLACABLE_BY_LIQUID;
@@ -63,6 +63,13 @@ public class BlockTagProvider extends BlockTagsProvider {
   public BlockTagProvider(PackOutput output, CompletableFuture<Provider> lookupProvider, ExistingFileHelper existingFileHelper) {
     super(output, lookupProvider, TConstruct.MOD_ID, existingFileHelper);
   }
+
+  /* Common glass tags removed from NeoForge in 1.21; recreated here under their original {@code c:} IDs to preserve behavior */
+  private static final TagKey<Block> GLASS_COLORLESS = BlockTags.create(commonResource("glass/colorless"));
+  private static final TagKey<Block> GLASS_TINTED = BlockTags.create(commonResource("glass/tinted"));
+  private static final TagKey<Block> GLASS_SILICA = BlockTags.create(commonResource("glass/silica"));
+  private static final TagKey<Block> STAINED_GLASS = BlockTags.create(commonResource("stained_glass"));
+  private static final TagKey<Block> STAINED_GLASS_PANES = BlockTags.create(commonResource("stained_glass_panes"));
 
   @Override
   protected void addTags(HolderLookup.Provider pProvider) {
@@ -101,22 +108,22 @@ public class BlockTagProvider extends BlockTagsProvider {
       Blocks.GRAY_STAINED_GLASS_PANE, Blocks.GREEN_STAINED_GLASS_PANE, Blocks.LIGHT_BLUE_STAINED_GLASS_PANE, Blocks.LIGHT_GRAY_STAINED_GLASS_PANE,
       Blocks.LIME_STAINED_GLASS_PANE, Blocks.MAGENTA_STAINED_GLASS_PANE, Blocks.ORANGE_STAINED_GLASS_PANE, Blocks.PINK_STAINED_GLASS_PANE,
       Blocks.PURPLE_STAINED_GLASS_PANE, Blocks.RED_STAINED_GLASS_PANE, Blocks.WHITE_STAINED_GLASS_PANE, Blocks.YELLOW_STAINED_GLASS_PANE);
-    this.tag(Tags.Blocks.GLASS_COLORLESS).add(TinkerCommons.clearGlass.get());
+    this.tag(GLASS_COLORLESS).add(TinkerCommons.clearGlass.get());
     this.tag(Tags.Blocks.GLASS_PANES_COLORLESS).add(TinkerCommons.clearGlassPane.get());
-    addGlass(TinkerCommons.clearStainedGlass, "glass/", tag(Tags.Blocks.STAINED_GLASS));
-    addGlass(TinkerCommons.clearStainedGlassPane, "glass_panes/", tag(Tags.Blocks.STAINED_GLASS_PANES));
+    addGlass(TinkerCommons.clearStainedGlass, "glass/", tag(STAINED_GLASS));
+    addGlass(TinkerCommons.clearStainedGlassPane, "glass_panes/", tag(STAINED_GLASS_PANES));
     TinkerCommons.clearStainedGlassPane.forEach(pane -> silicaPanes.add(pane));
 
     // impermeable for all glass
     IntrinsicTagAppender<Block> impermeable = tag(BlockTags.IMPERMEABLE);
-    IntrinsicTagAppender<Block> silicaGlass = tag(Tags.Blocks.GLASS_SILICA);
+    IntrinsicTagAppender<Block> silicaGlass = tag(GLASS_SILICA);
     impermeable.add(TinkerCommons.clearGlass.get(), TinkerCommons.soulGlass.get(), TinkerCommons.clearTintedGlass.get(),
                     TinkerSmeltery.searedGlass.get(), TinkerSmeltery.searedSoulGlass.get(), TinkerSmeltery.searedTintedGlass.get(),
                     TinkerSmeltery.scorchedGlass.get(), TinkerSmeltery.scorchedSoulGlass.get(), TinkerSmeltery.scorchedTintedGlass.get());
     silicaGlass.add(TinkerCommons.clearGlass.get());
     TinkerCommons.clearStainedGlass.values().forEach(impermeable::add);
     TinkerCommons.clearStainedGlass.values().forEach(silicaGlass::add);
-    tag(Tags.Blocks.GLASS_TINTED).add(TinkerCommons.clearTintedGlass.get());
+    tag(GLASS_TINTED).add(TinkerCommons.clearTintedGlass.get());
 
     // soul speed on glass
     this.tag(BlockTags.SOUL_SPEED_BLOCKS).add(TinkerCommons.soulGlass.get(), TinkerCommons.soulGlassPane.get(),
@@ -126,8 +133,8 @@ public class BlockTagProvider extends BlockTagsProvider {
     this.tag(TinkerTags.Blocks.TRANSPARENT_OVERLAY).add(TinkerCommons.soulGlass.get(), TinkerCommons.soulGlassPane.get(),
                                                         TinkerSmeltery.searedSoulGlass.get(), TinkerSmeltery.searedSoulGlassPane.get(),
                                                         TinkerSmeltery.scorchedSoulGlass.get(), TinkerSmeltery.scorchedSoulGlassPane.get());
-    Function<String,ResourceLocation> createId = name -> new ResourceLocation("create", name);
-    Function<String,ResourceLocation> quarkId = name -> new ResourceLocation("quark", name);
+    Function<String,ResourceLocation> createId = name -> ResourceLocation.fromNamespaceAndPath("create", name);
+    Function<String,ResourceLocation> quarkId = name -> ResourceLocation.fromNamespaceAndPath("quark", name);
     this.tag(TinkerTags.Blocks.WORKSTATION_ROCK)
       .addTags(TinkerTags.Blocks.STONE, TinkerTags.Blocks.BLACKSTONE, TinkerTags.Blocks.GRANITE, TinkerTags.Blocks.DIORITE, TinkerTags.Blocks.ANDESITE, TinkerTags.Blocks.DEEPSLATE, TinkerTags.Blocks.BASALT)
       .add(Blocks.TUFF, Blocks.DRIPSTONE_BLOCK, Blocks.CALCITE)
@@ -166,7 +173,7 @@ public class BlockTagProvider extends BlockTagsProvider {
     this.tag(TinkerTags.Blocks.PLATFORM_CONNECTIONS)
       .add(Blocks.LEVER, Blocks.LADDER, Blocks.IRON_BARS, TinkerCommons.goldBars.get(), Blocks.TRIPWIRE_HOOK, Blocks.WALL_TORCH, Blocks.SOUL_WALL_TORCH, Blocks.REDSTONE_WALL_TORCH, Blocks.REDSTONE_WIRE)
       .addTags(Tags.Blocks.GLASS_PANES, BlockTags.BUTTONS, Tags.Blocks.FENCES, BlockTags.WALLS, BlockTags.WALL_SIGNS)
-      .addOptionalTag(new ResourceLocation("architects_palette:nubs"));
+      .addOptionalTag(ResourceLocation.parse("architects_palette:nubs"));
 
     // copper platforms
     IntrinsicTagAppender<Block> copperPlatforms = this.tag(TinkerTags.Blocks.COPPER_PLATFORMS);
@@ -178,7 +185,7 @@ public class BlockTagProvider extends BlockTagsProvider {
     // vanilla is not tagged, so tag it
     this.tag(TinkerTags.Blocks.WORKBENCHES)
         .add(Blocks.CRAFTING_TABLE, TinkerTables.craftingStation.get())
-        .addOptionalTag(new ResourceLocation("forge:workbench")); // some mods use a non-standard name here, so support it I guess
+        .addOptionalTag(ResourceLocation.parse("forge:workbench")); // some mods use a non-standard name here, so support it I guess
     this.tag(TinkerTags.Blocks.TABLES)
         .add(TinkerTables.craftingStation.get(), TinkerTables.partBuilder.get(), TinkerTables.tinkerStation.get());
 
@@ -449,10 +456,10 @@ public class BlockTagProvider extends BlockTagsProvider {
         Tiers grassTier = grass.getHarvestTier();
         // cannot use tier sorting registry as it's not init during datagen, stuck comparing levels and falling back to ordinal for gold
         Tiers tier;
-        if (dirtTier.getLevel() == grassTier.getLevel()) {
+        if (harvestLevel(dirtTier) == harvestLevel(grassTier)) {
           tier = dirtTier.ordinal() > grassTier.ordinal() ? dirtTier : grassTier;
         } else {
-          tier = dirtTier.getLevel() > grassTier.getLevel() ? dirtTier : grassTier;
+          tier = harvestLevel(dirtTier) > harvestLevel(grassTier) ? dirtTier : grassTier;
         }
         this.tag(Objects.requireNonNull(tier.getTag())).add(TinkerWorld.slimeGrass.get(dirt).get(grass));
       }
@@ -536,7 +543,7 @@ public class BlockTagProvider extends BlockTagsProvider {
 
   @Override
   public String getName() {
-    return "Tinkers Construct Block Tags";
+    return "Neo Tinkers Block Tags";
   }
 
   /** Applies a tag to a set of suppliers */
@@ -641,6 +648,20 @@ public class BlockTagProvider extends BlockTagsProvider {
       this.tag(BlockTags.BEACON_BASE_BLOCKS).addTag(metal.getBlockTag());
     }
     this.tag(Tags.Blocks.STORAGE_BLOCKS).addTag(metal.getBlockTag());
+  }
+
+  /**
+   * Reproduces the pre-1.21 {@code Tiers#getLevel()} harvest level mapping, which 1.21 removed when tiers became
+   * data driven. Gold shares wood's level (0) and netherite continues above diamond.
+   */
+  private static int harvestLevel(Tiers tier) {
+    return switch (tier) {
+      case WOOD, GOLD -> 0;
+      case STONE -> 1;
+      case IRON -> 2;
+      case DIAMOND -> 3;
+      case NETHERITE -> 4;
+    };
   }
 
   /** Adds tags for a glass item object */

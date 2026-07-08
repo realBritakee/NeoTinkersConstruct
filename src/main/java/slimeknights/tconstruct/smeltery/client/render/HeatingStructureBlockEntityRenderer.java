@@ -19,7 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 import slimeknights.tconstruct.common.config.Config;
 import slimeknights.tconstruct.library.client.TinkerRenderTypes;
@@ -33,6 +33,11 @@ public class HeatingStructureBlockEntityRenderer implements BlockEntityRenderer<
   private static final float ITEM_SCALE = 15f/16f;
 
   public HeatingStructureBlockEntityRenderer(Context context) {}
+
+  @Override
+  public net.minecraft.world.phys.AABB getRenderBoundingBox(HeatingStructureBlockEntity smeltery) {
+    return smeltery.getRenderBoundingBox();
+  }
 
   @Override
   public void render(HeatingStructureBlockEntity smeltery, float partialTicks, PoseStack matrices, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
@@ -56,7 +61,7 @@ public class HeatingStructureBlockEntityRenderer implements BlockEntityRenderer<
         if ((dx * dx + dz * dz) < 512) {
           // color will be yellow if the structure is valid (expanding), red if invalid
           VertexConsumer vertexBuilder = buffer.getBuffer(highlightError ? TinkerRenderTypes.ERROR_BLOCK : RenderType.LINES);
-          LevelRenderer.renderShape(matrices, vertexBuilder, Shapes.block(), errorPos.getX() - pos.getX(), errorPos.getY() - pos.getY(), errorPos.getZ() - pos.getZ(), 1f, structureValid ? 1f : 0f, 0f, 0.5f);
+          LevelRenderer.renderVoxelShape(matrices, vertexBuilder, Shapes.block(), errorPos.getX() - pos.getX(), errorPos.getY() - pos.getY(), errorPos.getZ() - pos.getZ(), 1f, structureValid ? 1f : 0f, 0f, 0.5f, false);
         }
       }
     }

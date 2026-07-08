@@ -1,6 +1,9 @@
 package slimeknights.tconstruct.tools.modifiers.traits.skull;
 
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.Level.ExplosionInteraction;
 import slimeknights.mantle.client.TooltipKey;
+import slimeknights.tconstruct.TConstruct;
 import slimeknights.tconstruct.common.TinkerDamageTypes;
 import slimeknights.tconstruct.library.modifiers.ModifierEntry;
 import slimeknights.tconstruct.library.modifiers.ModifierHooks;
@@ -39,14 +43,19 @@ public class SelfDestructiveModifier extends NoLevelsModifier implements Keybind
     return false;
   }
 
+  /** Self destructing is a DeferredHolder with a wildcard registry type, so wrap the effect as a Holder<MobEffect> */
+  private static Holder<MobEffect> selfDestructing() {
+    return BuiltInRegistries.MOB_EFFECT.wrapAsHolder(TinkerEffects.selfDestructing.value());
+  }
+
   @Override
   public void stopInteract(IToolStackView tool, ModifierEntry modifier, Player player, EquipmentSlot slot) {
-    player.removeEffect(TinkerEffects.selfDestructing.get());
+    player.removeEffect(selfDestructing());
   }
 
   @Override
   public void onUnequip(IToolStackView tool, ModifierEntry modifier, EquipmentChangeContext context) {
-    context.getEntity().removeEffect(TinkerEffects.selfDestructing.get());
+    context.getEntity().removeEffect(selfDestructing());
   }
 
   /** Internal potion effect handling the explosion */
@@ -54,16 +63,16 @@ public class SelfDestructiveModifier extends NoLevelsModifier implements Keybind
     public SelfDestructiveEffect() {
       super(MobEffectCategory.HARMFUL, 0x59D24A, true);
       // make the player slow
-      addAttributeModifier(Attributes.MOVEMENT_SPEED, "68ee3026-1d50-4eb4-914e-a8b05fbfdb71", -0.9f, Operation.MULTIPLY_TOTAL);
+      addAttributeModifier(Attributes.MOVEMENT_SPEED, TConstruct.getResource("self_destructive"), -0.9f, Operation.ADD_MULTIPLIED_TOTAL);
     }
 
     @Override
-    public boolean isDurationEffectTick(int duration, int amplifier) {
+    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
       return duration == 1;
     }
 
     @Override
-    public void applyEffectTick(LivingEntity living, int amplifier) {
+    public boolean applyEffectTick(LivingEntity living, int amplifier) {
       // effect level is the explosion radius
       Level level = living.level();
       if (!level.isClientSide) {
@@ -71,6 +80,7 @@ public class SelfDestructiveModifier extends NoLevelsModifier implements Keybind
         level.explode(living, living.getX(), living.getY(), living.getZ(), amplifier + 1, ExplosionInteraction.MOB);
         living.hurt(TinkerDamageTypes.source(level.registryAccess(), TinkerDamageTypes.SELF_DESTRUCT), 99999);
       }
+      return true;
     }
   }
 }

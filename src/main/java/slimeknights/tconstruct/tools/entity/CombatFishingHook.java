@@ -8,6 +8,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -29,7 +30,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ToolActions;
+import net.neoforged.neoforge.common.ItemAbilities;
 import slimeknights.mantle.util.CombatHelper;
 import slimeknights.tconstruct.common.TinkerDamageTypes;
 import slimeknights.tconstruct.common.TinkerTags;
@@ -105,11 +106,11 @@ public class CombatFishingHook extends FishingHook implements ProjectileWithKnoc
   }
 
   @Override
-  protected void defineSynchedData() {
-    super.defineSynchedData();
-    this.entityData.define(GRAPPLE, (byte) GrappleType.NONE.ordinal());
-    this.entityData.define(COLLECTING, false);
-    this.entityData.define(MATERIAL, IMaterial.UNKNOWN_ID);
+  protected void defineSynchedData(SynchedEntityData.Builder builder) {
+    super.defineSynchedData(builder);
+    builder.define(GRAPPLE, (byte) GrappleType.NONE.ordinal());
+    builder.define(COLLECTING, false);
+    builder.define(MATERIAL, IMaterial.UNKNOWN_ID);
   }
 
   /** Gets the currently displayed material */
@@ -175,9 +176,9 @@ public class CombatFishingHook extends FishingHook implements ProjectileWithKnoc
       ItemStack stack = living.getMainHandItem();
       InteractionHand hand = InteractionHand.MAIN_HAND;
       // must be able to cast
-      if (!stack.canPerformAction(ToolActions.FISHING_ROD_CAST)) {
+      if (!stack.canPerformAction(ItemAbilities.FISHING_ROD_CAST)) {
         stack = living.getOffhandItem();
-        if (!stack.canPerformAction(ToolActions.FISHING_ROD_CAST)) {
+        if (!stack.canPerformAction(ItemAbilities.FISHING_ROD_CAST)) {
           return;
         }
         hand = InteractionHand.OFF_HAND;
@@ -237,18 +238,18 @@ public class CombatFishingHook extends FishingHook implements ProjectileWithKnoc
         // actually hurt the entity
         float oldHealth = targetLiving != null ? targetLiving.getHealth() : 0;
         if (target.hurt(source, damage)) {
-          if (!this.level().isClientSide && owner instanceof LivingEntity ownerLiving) {
+          if (this.level() instanceof ServerLevel serverLevel && owner instanceof LivingEntity ownerLiving) {
             if (targetLiving != null) {
-              EnchantmentHelper.doPostHurtEffects(targetLiving, owner);
+              EnchantmentHelper.doPostAttackEffects(serverLevel, targetLiving, source);
             }
 
             // run modifier hook
             modifierHook: {
               // find out which stack was used
               ItemStack stack = ownerLiving.getMainHandItem();
-              if (!stack.canPerformAction(ToolActions.FISHING_ROD_CAST)) {
+              if (!stack.canPerformAction(ItemAbilities.FISHING_ROD_CAST)) {
                 stack = ownerLiving.getOffhandItem();
-                if (!stack.canPerformAction(ToolActions.FISHING_ROD_CAST)) {
+                if (!stack.canPerformAction(ItemAbilities.FISHING_ROD_CAST)) {
                   break modifierHook;
                 }
               }
@@ -297,7 +298,7 @@ public class CombatFishingHook extends FishingHook implements ProjectileWithKnoc
     knockback = knockback.scale(GRAPPLE_STRENGTH * Math.pow(knockback.lengthSqr(), -0.25f));
     owner.push(knockback.x, knockback.y, knockback.z);
     if (isDrill() && owner instanceof Player player) {
-      player.startAutoSpinAttack(20);
+      player.startAutoSpinAttack(20, 8.0F, player.getMainHandItem());
     }
     if (owner instanceof ServerPlayer player) {
       player.connection.send(new ClientboundSetEntityMotionPacket(player.getId(), player.getDeltaMovement()));

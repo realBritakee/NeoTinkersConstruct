@@ -6,8 +6,6 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.LazyOptional;
-import slimeknights.mantle.util.LogicHelper;
 import slimeknights.tconstruct.common.TinkerTags;
 import slimeknights.tconstruct.library.tools.capability.TinkerDataCapability;
 import slimeknights.tconstruct.library.tools.context.EquipmentIterator.EquipmentEntry;
@@ -28,12 +26,16 @@ public class EquipmentContext {
   /** Entity who changed equipment */
   @Getter
   private final LivingEntity entity;
+  /** Number of equipment slots; in 1.21 the BODY slot (animal armor) raised the max filter flag to 6, so arrays must be sized for all slots. */
+  private static final int SLOT_COUNT = EquipmentSlot.values().length;
   /** Determines if the tool in the given slot was fetched */
-  protected final boolean[] fetchedTool = new boolean[6];
+  protected final boolean[] fetchedTool = new boolean[SLOT_COUNT];
   /** Array of tools currently on the entity */
-  protected final IToolStackView[] toolsInSlots = new IToolStackView[6];
-  /** Cached tinker data capability, saves capability lookup times slightly */
-  private LazyOptional<TinkerDataCapability.Holder> tinkerData = null;
+  protected final IToolStackView[] toolsInSlots = new IToolStackView[SLOT_COUNT];
+  /** Cached tinker data holder, saves attachment lookup times slightly */
+  private TinkerDataCapability.Holder tinkerData = null;
+  /** Tracks whether the tinker data holder has been fetched, since the holder itself may legitimately be null */
+  private boolean fetchedTinkerData = false;
 
   /** Creates a context with an existing tool instance */
   public static EquipmentContext withTool(LivingEntity living, IToolStackView tool, EquipmentSlot slot) {
@@ -94,18 +96,20 @@ public class EquipmentContext {
     return hasModifiableArmor(EquipmentSlot.values());
   }
 
-  /** Gets the tinker data capability */
-  public LazyOptional<TinkerDataCapability.Holder> getTinkerData() {
-    if (tinkerData == null) {
-      tinkerData = entity.getCapability(TinkerDataCapability.CAPABILITY);
+  /** Gets the tinker data holder, or null if absent */
+  @Nullable
+  public TinkerDataCapability.Holder getTinkerData() {
+    if (!fetchedTinkerData) {
+      tinkerData = TinkerDataCapability.getData(entity);
+      fetchedTinkerData = true;
     }
     return tinkerData;
   }
 
-  /** Gets the tinker data capability, or null if absent */
+  /** Gets the tinker data holder, or null if absent */
   @Nullable
   public TinkerDataCapability.Holder getDataHolder() {
-    return LogicHelper.orElseNull(getTinkerData());
+    return getTinkerData();
   }
 
 

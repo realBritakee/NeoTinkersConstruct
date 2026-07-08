@@ -18,6 +18,7 @@ public class StoneshieldModifier extends Modifier {
     super.registerHooks(hookBuilder);
     hookBuilder.addModule(new CapacityBarModule(LevelingInt.eachLevel(100), ToolStats.DURABILITY));
     hookBuilder.addModule(new DurabilityShieldModule(0x7F7F7F));
+    // amount(int) is the Lombok fluent setter (1-arg), distinct from the terminal amount(float,float); restores 3 shield per consumed stone
     hookBuilder.addModule(LootToCapacityModule.consume(Ingredient.of(TinkerTags.Items.STONESHIELDS)).amount(3).eachLevel(0.2f));
   }
 

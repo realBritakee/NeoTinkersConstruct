@@ -12,9 +12,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidType;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidType;
 import slimeknights.mantle.client.render.FluidCuboid;
 import slimeknights.mantle.client.render.FluidRenderer;
 import slimeknights.mantle.client.render.MantleRenderTypes;
@@ -27,6 +27,12 @@ import java.util.function.Function;
 
 public class FaucetBlockEntityRenderer implements BlockEntityRenderer<FaucetBlockEntity> {
   public FaucetBlockEntityRenderer(Context context) {}
+
+  @Override
+  public net.minecraft.world.phys.AABB getRenderBoundingBox(FaucetBlockEntity tileEntity) {
+    net.minecraft.core.BlockPos pos = tileEntity.getBlockPos();
+    return new net.minecraft.world.phys.AABB(pos.getX(), pos.getY() - 1, pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
+  }
 
   @Override
   public void render(FaucetBlockEntity tileEntity, float partialTicks, PoseStack matrices, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {

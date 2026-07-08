@@ -2,9 +2,12 @@ package slimeknights.tconstruct.library.tools.capability.fluid;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.registry.NamedComponentRegistry;
 import slimeknights.tconstruct.TConstruct;
@@ -23,8 +26,23 @@ import java.util.function.BiFunction;
 @Getter
 @RequiredArgsConstructor
 public class ToolTankHelper {
+  /**
+   * Registry lookup used to (de)serialize the stored fluid. Tool tanks store plain fluids in the tool's persistent data
+   * compound without a level reference, so we serialize against the static built-in registries (which include the fluid registry).
+   * Initialized lazily to ensure the built-in registries are populated.
+   */
+  private static HolderLookup.Provider fluidLookup;
+
+  /** Gets the registry lookup used to serialize tank fluids */
+  private static HolderLookup.Provider fluidLookup() {
+    if (fluidLookup == null) {
+      fluidLookup = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+    }
+    return fluidLookup;
+  }
+
   /** Helper function to parse a fluid from NBT */
-  public static final BiFunction<CompoundTag, String, FluidStack> PARSE_FLUID = (nbt, key) -> FluidStack.loadFluidStackFromNBT(nbt.getCompound(key));
+  public static final BiFunction<CompoundTag, String, FluidStack> PARSE_FLUID = (nbt, key) -> FluidStack.parseOptional(fluidLookup(), nbt.getCompound(key));
 
   /** Format key for the stat */
   public static final String MB_FORMAT = Mantle.makeDescriptionId("gui", "fluid.millibucket");
@@ -63,12 +81,15 @@ public class ToolTankHelper {
       return FluidStack.EMPTY;
     }
     int capacity = getCapacity(tool);
-    // we always copy before saving to ensure the NBT on the fluid gets copied, since those being the same compound is possible
+    // we always copy before saving to ensure the components on the fluid get copied, since sharing the same instance is possible
     fluid = fluid.copy();
     if (fluid.getAmount() > capacity) {
       fluid.setAmount(capacity);
     }
-    tool.getPersistentData().put(fluidKey, fluid.writeToNBT(new CompoundTag()));
+    // 1.21: FluidStack.save RETURNS the encoded tag and must be used; discarding it lost the tool tank
+    // fluid on save (tank modifier emptied on reload).
+    CompoundTag saved = (CompoundTag) fluid.save(fluidLookup(), new CompoundTag());
+    tool.getPersistentData().put(fluidKey, saved);
     return fluid;
   }
 }

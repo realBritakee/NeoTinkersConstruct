@@ -75,7 +75,7 @@ public class MultiblockStructureData {
     innerX = maxInside.getX() - minInside.getX() + 1;
     innerY = maxInside.getY() - minInside.getY() + 1;
     innerZ = maxInside.getZ() - minInside.getZ() + 1;
-    bounds = new AABB(minInside, maxInside.offset(1, 1, 1));
+    bounds = AABB.encapsulatingFullBlocks(minInside, maxInside);
   }
 
   /**
@@ -136,7 +136,7 @@ public class MultiblockStructureData {
       if (pos.getX() == minPos.getX() || pos.getX() == maxPos.getX()) edges++;
       if (pos.getZ() == minPos.getZ() || pos.getZ() == maxPos.getZ()) edges++;
       if ((hasFloor && pos.getY() == minPos.getY()) ||
-          (hasCeiling && pos.getX() == maxPos.getX())) edges++;
+          (hasCeiling && pos.getY() == maxPos.getY())) edges++;
       if (edges < 2) {
         return true;
       }

@@ -1,8 +1,12 @@
 package slimeknights.tconstruct.smeltery.item;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -10,12 +14,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.tconstruct.common.TinkerTags;
 import slimeknights.tconstruct.library.recipe.FluidValues;
@@ -37,11 +39,6 @@ public class CopperCanItem extends Item {
   }
 
   @Override
-  public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundTag nbt) {
-    return new CopperCanFluidHandler(stack);
-  }
-
-  @Override
   public boolean hasCraftingRemainingItem(ItemStack stack) {
     return getFluid(stack) != Fluids.EMPTY;
   }
@@ -55,17 +52,10 @@ public class CopperCanItem extends Item {
   }
 
   @Override
-  public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip, TooltipFlag flag) {
+  public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
     Fluid fluid = getFluid(stack);
     if (fluid != Fluids.EMPTY) {
-      CompoundTag fluidTag = getFluidTag(stack);
-      MutableComponent text;
-      if (fluidTag != null) {
-        FluidStack displayFluid = new FluidStack(fluid, FluidValues.INGOT, fluidTag);
-        text = displayFluid.getDisplayName().plainCopy();
-      } else {
-        text = Component.translatable(fluid.getFluidType().getDescriptionId());
-      }
+      MutableComponent text = getFluidStack(stack, FluidValues.INGOT).getDisplayName().plainCopy();
       tooltip.add(Component.translatable(this.getDescriptionId() + ".contents", text).withStyle(ChatFormatting.GRAY));
       if (flag.isAdvanced()) {
         tooltip.add(Component.translatable(TankItem.FLUID_ID, Loadables.FLUID.getKey(fluid)).withStyle(ChatFormatting.DARK_GRAY));
@@ -77,25 +67,29 @@ public class CopperCanItem extends Item {
 
   /** Removes the fluid from the given stack */
   public static void removeFluid(ItemStack stack) {
-    CompoundTag nbt = stack.getTag();
-    if (nbt != null) {
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data != null) {
+      CompoundTag nbt = data.copyTag();
       nbt.remove(TAG_FLUID);
       nbt.remove(TAG_FLUID_TAG);
       if (nbt.isEmpty()) {
-        stack.setTag(null);
+        stack.remove(DataComponents.CUSTOM_DATA);
+      } else {
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
       }
     }
   }
 
   /** Sets the fluid on the given stack whether or not its valiid */
   private static void setFluidInternal(ItemStack stack, ResourceLocation fluid, @Nullable CompoundTag fluidTag) {
-    CompoundTag nbt = stack.getOrCreateTag();
-    nbt.putString(TAG_FLUID, fluid.toString());
-    if (fluidTag != null) {
-      nbt.put(TAG_FLUID_TAG, fluidTag.copy());
-    } else {
-      nbt.remove(TAG_FLUID_TAG);
-    }
+    CustomData.update(DataComponents.CUSTOM_DATA, stack, nbt -> {
+      nbt.putString(TAG_FLUID, fluid.toString());
+      if (fluidTag != null) {
+        nbt.put(TAG_FLUID_TAG, fluidTag.copy());
+      } else {
+        nbt.remove(TAG_FLUID_TAG);
+      }
+    });
   }
 
 
@@ -122,20 +116,55 @@ public class CopperCanItem extends Item {
     return stack;
   }
 
-  /** Sets the fluid on the given stack */
+  /** Sets the fluid on the given stack, preserving the fluid's data components */
   public static ItemStack setFluid(ItemStack stack, FluidStack fluid) {
-    return setFluid(stack, fluid.getFluid(), fluid.getTag());
+    return setFluid(stack, fluid.getFluid(), serializeComponents(fluid.getComponentsPatch()));
+  }
+
+  /** Serializes a fluid component patch into the compound stored under {@link #TAG_FLUID_TAG}, or null if empty */
+  @Nullable
+  private static CompoundTag serializeComponents(DataComponentPatch patch) {
+    if (patch.isEmpty()) {
+      return null;
+    }
+    Tag encoded = DataComponentPatch.CODEC.encodeStart(NbtOps.INSTANCE, patch).result().orElse(null);
+    if (encoded instanceof CompoundTag compound && !compound.isEmpty()) {
+      return compound;
+    }
+    return null;
+  }
+
+  /** Deserializes the stored component patch from the given stack */
+  private static DataComponentPatch deserializeComponents(ItemStack stack) {
+    CompoundTag fluidTag = getFluidTag(stack);
+    if (fluidTag != null) {
+      return DataComponentPatch.CODEC.parse(NbtOps.INSTANCE, fluidTag).result().orElse(DataComponentPatch.EMPTY);
+    }
+    return DataComponentPatch.EMPTY;
+  }
+
+  /** Gets the contained fluid as a stack with its stored components, using the given amount */
+  public static FluidStack getFluidStack(ItemStack stack, int amount) {
+    Fluid fluid = getFluid(stack);
+    if (fluid == Fluids.EMPTY) {
+      return FluidStack.EMPTY;
+    }
+    Holder<Fluid> holder = BuiltInRegistries.FLUID.wrapAsHolder(fluid);
+    return new FluidStack(holder, amount, deserializeComponents(stack));
   }
 
   /** Gets the fluid from the given stack */
   public static Fluid getFluid(ItemStack stack) {
-    CompoundTag nbt = stack.getTag();
-    if (nbt != null && nbt.contains(TAG_FLUID, Tag.TAG_STRING)) {
-      ResourceLocation location = ResourceLocation.tryParse(nbt.getString(TAG_FLUID));
-      if (location != null && ForgeRegistries.FLUIDS.containsKey(location)) {
-        Fluid fluid = ForgeRegistries.FLUIDS.getValue(location);
-        if (fluid != null) {
-          return fluid;
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data != null) {
+      CompoundTag nbt = data.copyTag();
+      if (nbt.contains(TAG_FLUID, Tag.TAG_STRING)) {
+        ResourceLocation location = ResourceLocation.tryParse(nbt.getString(TAG_FLUID));
+        if (location != null && BuiltInRegistries.FLUID.containsKey(location)) {
+          Fluid fluid = BuiltInRegistries.FLUID.get(location);
+          if (fluid != null) {
+            return fluid;
+          }
         }
       }
     }
@@ -146,7 +175,7 @@ public class CopperCanItem extends Item {
   @SuppressWarnings("deprecation")
   public static void addFilledVariants(Consumer<ItemStack> output) {
     BuiltInRegistries.FLUID.holders().filter(holder -> {
-      Fluid fluid = holder.get();
+      Fluid fluid = holder.value();
       return fluid.isSource(fluid.defaultFluidState()) && !holder.is(TinkerTags.Fluids.HIDE_IN_CREATIVE_TANKS);
     }).forEachOrdered(holder -> {
       output.accept(CopperCanItem.setFluid(new ItemStack(TinkerSmeltery.copperCan), holder.key().location(), null));
@@ -156,9 +185,12 @@ public class CopperCanItem extends Item {
   /** Gets the fluid NBT from the given stack */
   @Nullable
   public static CompoundTag getFluidTag(ItemStack stack) {
-    CompoundTag nbt = stack.getTag();
-    if (nbt != null && nbt.contains(TAG_FLUID_TAG, Tag.TAG_COMPOUND)) {
-      return nbt.getCompound(TAG_FLUID_TAG);
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data != null) {
+      CompoundTag nbt = data.copyTag();
+      if (nbt.contains(TAG_FLUID_TAG, Tag.TAG_COMPOUND)) {
+        return nbt.getCompound(TAG_FLUID_TAG);
+      }
     }
     return null;
   }
@@ -169,9 +201,9 @@ public class CopperCanItem extends Item {
    * @return  String variant name
    */
   public static String getSubtype(ItemStack stack) {
-    CompoundTag nbt = stack.getTag();
-    if (nbt != null) {
-      return nbt.getString(TAG_FLUID);
+    CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+    if (data != null) {
+      return data.copyTag().getString(TAG_FLUID);
     }
     return "";
   }

@@ -1,7 +1,7 @@
 package slimeknights.tconstruct.common.data.tags;
 
 import net.minecraft.data.PackOutput;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import slimeknights.tconstruct.TConstruct;
 import slimeknights.tconstruct.library.data.tinkering.AbstractModifierTagProvider;
 import slimeknights.tconstruct.tools.TinkerModifiers;
@@ -227,6 +227,6 @@ public class ModifierTagProvider extends AbstractModifierTagProvider {
 
   @Override
   public String getName() {
-    return "Tinkers' Construct Modifier Tag Provider";
+    return "Neo Tinkers Modifier Tag Provider";
   }
 }

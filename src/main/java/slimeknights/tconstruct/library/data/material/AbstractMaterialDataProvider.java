@@ -4,9 +4,9 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
-import net.minecraftforge.common.crafting.conditions.AndCondition;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.common.crafting.conditions.OrCondition;
+import net.neoforged.neoforge.common.conditions.AndCondition;
+import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.common.conditions.OrCondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.GenericDataProvider;
 import slimeknights.mantle.recipe.condition.TagFilledCondition;
@@ -141,7 +141,7 @@ public abstract class AbstractMaterialDataProvider extends GenericDataProvider {
     ICondition condition = new OrCondition(Stream.concat(
       Stream.of(ConfigEnabledCondition.FORCE_INTEGRATION_MATERIALS),
       Arrays.stream(tagNames).map(AbstractMaterialDataProvider::tagExistsCondition)
-    ).toArray(ICondition[]::new));
+    ).collect(java.util.stream.Collectors.toList()));
     addMaterial(location, tier, order, craftable, false, condition);
   }
 
@@ -158,14 +158,14 @@ public abstract class AbstractMaterialDataProvider extends GenericDataProvider {
 
   /** Creates a new compat alloy, enabled if its components are present */
   protected void addCompatAlloy(MaterialId location, int tier, int order, ICondition... alloyConditions) {
-    ICondition condition = new OrCondition(
+    ICondition condition = new OrCondition(java.util.List.of(
       // if forced
       ConfigEnabledCondition.FORCE_INTEGRATION_MATERIALS,
       // or we have the matching alloy ingot
       tagExistsCondition("ingots/" + location.getPath()),
       // or we allow ingotless alloys and have all alloy components
-      new AndCondition(Util.prepend(alloyConditions, ConfigEnabledCondition.ALLOW_INGOTLESS_ALLOYS))
-    );
+      new AndCondition(java.util.List.of(Util.prepend(alloyConditions, ConfigEnabledCondition.ALLOW_INGOTLESS_ALLOYS)))
+    ));
     addMaterial(location, tier, order, false, false, condition);
   }
 

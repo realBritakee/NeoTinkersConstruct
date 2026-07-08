@@ -9,9 +9,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import slimeknights.mantle.fluid.FluidTransferHelper;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferDirection;
@@ -35,7 +35,7 @@ public class HeatingStructureContainerMenu extends TriggeringMultiModuleContaine
   private final SideInventoryContainer<HeatingStructureBlockEntity> sideInventory;
   @Getter
   private final Container bucketContainer;
-  @Getter
+  /** Current transfer direction. Explicit getter below (instead of lombok @Getter) so the TransferDirectionSupplier override is always recognized even if lombok skips generation. */
   private TransferDirection transferDirection = TransferDirection.AUTO;
   private final Slot bucketResultSlot;
   public HeatingStructureContainerMenu(int id, @Nullable Inventory inv, @Nullable HeatingStructureBlockEntity structure) {
@@ -75,6 +75,12 @@ public class HeatingStructureContainerMenu extends TriggeringMultiModuleContaine
   @Override
   protected int getInventoryYOffset() {
     return 138;
+  }
+
+  /** Gets the current transfer direction */
+  @Override
+  public TransferDirection getTransferDirection() {
+    return transferDirection;
   }
 
   /** Updates the bucket inventory */
@@ -186,7 +192,7 @@ public class HeatingStructureContainerMenu extends TriggeringMultiModuleContaine
 
     @Override
     public boolean mayPlace(ItemStack stack) {
-      return FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack) || stack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent();
+      return FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack) || stack.getCapability(Capabilities.FluidHandler.ITEM) != null;
     }
   }
 

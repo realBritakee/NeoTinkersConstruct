@@ -21,6 +21,10 @@ public abstract class AbstractCastingRecipe implements ICastingRecipe {
 
   @Getter @Nonnull
   private final RecipeType<?> type;
+  /**
+   * Recipe ID. In 1.21 vanilla recipes are keyed by their {@link net.minecraft.world.item.crafting.RecipeHolder},
+   * but casting recipes still carry their own ID for JEI display purposes.
+   */
   @Getter
   private final ResourceLocation id;
   @Getter

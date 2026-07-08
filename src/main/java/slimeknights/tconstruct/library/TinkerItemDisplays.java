@@ -1,60 +1,47 @@
 package slimeknights.tconstruct.library;
 
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegisterEvent;
-import slimeknights.tconstruct.TConstruct;
+import net.neoforged.bus.api.IEventBus;
 
-import java.util.Locale;
+import java.util.Objects;
 
-/** Custom transform types used for tinkers item rendering */
+/**
+ * Custom transform types used for tinkers item rendering.
+ *
+ * <p>In 1.21 {@link ItemDisplayContext} is no longer a registry; custom values are added via the NeoForge
+ * extensible-enum system. The {@link net.neoforged.fml.common.asm.enumextension.EnumProxy} instances live in
+ * {@link TinkerItemDisplayProxies} (referenced from {@code META-INF/enumextensions.json}); the loader assigns
+ * them their live enum constants while {@code ItemDisplayContext} initializes. The fields here resolve those
+ * proxies to the constants so the rest of the codebase keeps using them directly.
+ *
+ * <p>The proxies are deliberately in a SEPARATE class: the loader reads the proxy fields reentrantly during
+ * {@code ItemDisplayContext} init, so if the proxies and these resolved values shared a class, resolving
+ * (calling {@code getValue()}) would run mid-init before the loader assigned values and throw. That is exactly
+ * what happened when another mod (Twilight Forest) also extended the enum and forced its init first.
+ */
 public class TinkerItemDisplays {
   private TinkerItemDisplays() {}
 
-  public static void init() {
-    FMLJavaModLoadingContext.get().getModEventBus().addListener(TinkerItemDisplays::registerDisplay);
+  static {
+    // Ensure ItemDisplayContext is fully initialized (so the extension loader has already assigned our proxy
+    // values) before we call getValue() below, covering the case where game code touches this class before
+    // anything else has initialized the enum.
+    Objects.requireNonNull(ItemDisplayContext.NONE);
   }
+
+  /** No-op retained for the mod constructor call; extension happens via enumextensions.json before construction. */
+  public static void init(IEventBus bus) {}
 
   /** Used by the melter and smeltery for display of items its melting */
-  public static ItemDisplayContext MELTER = create("melter", ItemDisplayContext.NONE);
+  public static final ItemDisplayContext MELTER = TinkerItemDisplayProxies.MELTER_PROXY.getValue();
   /** Used by the part builder, crafting station, tinkers station, and tinker anvil */
-  public static ItemDisplayContext TABLE = create("table", ItemDisplayContext.NONE);
+  public static final ItemDisplayContext TABLE = TinkerItemDisplayProxies.TABLE_PROXY.getValue();
   /** Used by the casting table for item rendering */
-  public static ItemDisplayContext CASTING_TABLE = create("casting_table", ItemDisplayContext.FIXED);
+  public static final ItemDisplayContext CASTING_TABLE = TinkerItemDisplayProxies.CASTING_TABLE_PROXY.getValue();
   /** Used by the casting basin for item rendering */
-  public static ItemDisplayContext CASTING_BASIN = create("casting_basin", ItemDisplayContext.NONE);
+  public static final ItemDisplayContext CASTING_BASIN = TinkerItemDisplayProxies.CASTING_BASIN_PROXY.getValue();
   /** Used by the fluid cannon for display of the item in front */
-  public static ItemDisplayContext FLUID_CANNON = create("fluid_cannon", ItemDisplayContext.FIXED);
+  public static final ItemDisplayContext FLUID_CANNON = TinkerItemDisplayProxies.FLUID_CANNON_PROXY.getValue();
   /** Used by throwing to allow adjusting the tool position */
-  public static ItemDisplayContext THROWN = create("thrown", ItemDisplayContext.FIXED);
-
-  /** Creates a transform type */
-  private static ItemDisplayContext create(String name, ItemDisplayContext fallback) {
-    String key = "TCONSTRUCT_" + name.toUpperCase(Locale.ROOT);
-    if (fallback == ItemDisplayContext.NONE) {
-      return ItemDisplayContext.create(key, TConstruct.getResource(name), null);
-    }
-    return ItemDisplayContext.create(key, TConstruct.getResource(name), fallback);
-  }
-
-  /** Registers all item display types */
-  private static void registerDisplay(RegisterEvent event) {
-    if (event.getRegistryKey() == ForgeRegistries.Keys.DISPLAY_CONTEXTS) {
-      IForgeRegistry<ItemDisplayContext> registry = ForgeRegistries.DISPLAY_CONTEXTS.get();
-      register(registry, MELTER);
-      register(registry, TABLE);
-      register(registry, CASTING_TABLE);
-      register(registry, CASTING_BASIN);
-      register(registry, FLUID_CANNON);
-      register(registry, THROWN);
-    }
-  }
-
-  /** Registers a display type */
-  private static void register(IForgeRegistry<ItemDisplayContext> registry, ItemDisplayContext context) {
-    registry.register(new ResourceLocation(context.getSerializedName()), context);
-  }
+  public static final ItemDisplayContext THROWN = TinkerItemDisplayProxies.THROWN_PROXY.getValue();
 }

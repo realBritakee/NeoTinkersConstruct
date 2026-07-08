@@ -3,13 +3,22 @@ package slimeknights.tconstruct.library.tools.helper;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 
-import static net.minecraft.world.damagesource.CombatRules.getDamageAfterAbsorb;
-
 /**
  * Utinet.minecraft.world.damagesource.CombatRulesation logic
  */
 public class ArmorUtil {
   private ArmorUtil() {}
+
+  /**
+   * Inlined copy of the pre-1.21 {@code CombatRules.getDamageAfterAbsorb(float, float, float)}. The vanilla method gained
+   * entity and damage source parameters in 1.21 (for per-type armor effectiveness), but this helper only needs the pure
+   * armor/toughness math, so we keep the original closed form to preserve behavior.
+   */
+  private static float getDamageAfterAbsorb(float damage, float totalArmor, float toughnessAttribute) {
+    float f = 2.0F + toughnessAttribute / 4.0F;
+    float f1 = Mth.clamp(totalArmor - damage / f, totalArmor * 0.2F, 20.0F);
+    return damage * (1.0F - f1 / 25.0F);
+  }
 
   /**
    * Inverse of {@link net.minecraft.world.damagesource.CombatRules#getDamageAfterAbsorb(float, float, float)}  with respect to damage
@@ -71,7 +80,7 @@ public class ArmorUtil {
   }
 
   /**
-   * Calculates the final damage for use in {@link net.minecraftforge.event.entity.living.LivingHurtEvent}. Requires applying several inverse functions to cancel out vanilla formulas that are applied later
+   * Calculates the final damage for use in {@link net.neoforged.neoforge.event.entity.living.LivingHurtEvent}. Requires applying several inverse functions to cancel out vanilla formulas that are applied later
    * @param originalDamage     Original damage to be dealt
    * @param armor              Armor amount on the player
    * @param toughness          Armor toughness attribute

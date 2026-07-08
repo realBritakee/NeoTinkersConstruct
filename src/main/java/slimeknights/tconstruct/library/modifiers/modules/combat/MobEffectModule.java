@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
@@ -16,7 +18,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -62,6 +63,7 @@ import slimeknights.tconstruct.library.tools.helper.ToolDamageUtil;
 import slimeknights.tconstruct.library.tools.nbt.IToolStackView;
 import slimeknights.tconstruct.library.tools.nbt.ModDataNBT;
 import slimeknights.tconstruct.library.tools.nbt.ModifierNBT;
+import slimeknights.tconstruct.library.utils.TinkerEffectCures;
 import slimeknights.tconstruct.tools.modules.armor.CounterModule;
 
 import javax.annotation.Nullable;
@@ -69,7 +71,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNullElse;
 import static slimeknights.tconstruct.TConstruct.RANDOM;
@@ -180,7 +181,7 @@ public interface MobEffectModule extends ModifierModule, ConditionalModule<ITool
 
     /** Builds the effect */
     private ModifierMobEffect buildEffect() {
-      return new ModifierMobEffect(effect, level, time, target, curativeItems);
+      return new ModifierMobEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), level, time, target, curativeItems);
     }
 
     /** Effect targets an entity hit with this weapon, melee or ranged */
@@ -211,9 +212,10 @@ public interface MobEffectModule extends ModifierModule, ConditionalModule<ITool
   }
 
   /** Represents a mob effect applied via a modifier. Meant to be nested inside a modifier module. */
-  record ModifierMobEffect(MobEffect effect, RandomLevelingValue level, RandomLevelingValue time, IJsonPredicate<LivingEntity> target, @Nullable List<Item> curativeItems) {
+  record ModifierMobEffect(Holder<MobEffect> effect, RandomLevelingValue level, RandomLevelingValue time, IJsonPredicate<LivingEntity> target, @Nullable List<Item> curativeItems) {
+    @SuppressWarnings("deprecation")
     public static final RecordLoadable<ModifierMobEffect> LOADER = RecordLoadable.create(
-      Loadables.MOB_EFFECT.requiredField("effect", ModifierMobEffect::effect),
+      Loadables.MOB_EFFECT.<Holder<MobEffect>>xmap((effect, error) -> BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), (holder, error) -> holder.value()).requiredField("effect", ModifierMobEffect::effect),
       RandomLevelingValue.LOADABLE.requiredField("level", ModifierMobEffect::level),
       RandomLevelingValue.LOADABLE.requiredField("time", ModifierMobEffect::time),
       LivingEntityPredicate.LOADER.defaultField("target", ModifierMobEffect::target),
@@ -233,10 +235,9 @@ public interface MobEffectModule extends ModifierModule, ConditionalModule<ITool
       float duration = this.time.computeValue(scaledLevel);
       if (duration > 0) {
         MobEffectInstance instance = new MobEffectInstance(effect, (int)duration, level);
-        if (curativeItems != null) {
-          instance.setCurativeItems(curativeItems.stream().map(ItemStack::new).collect(Collectors.toList()));
-        }
-        target.addEffect(new MobEffectInstance(effect, (int)duration, level), cause);
+        // 1.21: per-stack curative items became EffectCure tokens. null keeps the effect's default cures; a list (possibly empty) replaces them with per-item cure tokens.
+        TinkerEffectCures.setCures(instance, curativeItems);
+        target.addEffect(instance, cause);
       }
     }
 

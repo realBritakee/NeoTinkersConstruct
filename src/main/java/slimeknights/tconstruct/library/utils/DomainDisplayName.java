@@ -1,13 +1,13 @@
 package slimeknights.tconstruct.library.utils;
 
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.common.ForgeI18n;
-import net.minecraftforge.fml.ModList;
+import net.minecraft.locale.Language;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.fml.ModList;
 import org.apache.commons.lang3.text.WordUtils;
 import slimeknights.mantle.data.listener.ISafeManagerReloadListener;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -17,7 +17,7 @@ public class DomainDisplayName {
   private DomainDisplayName() {}
 
   /** Map of domain name to display name */
-  private static final Map<String,String> DISPLAY_NAME_LOOKUP = new HashMap<>();
+  private static final Map<String,String> DISPLAY_NAME_LOOKUP = new ConcurrentHashMap<>();
   /** Cached pattern for matching a dash or underscore */
   private static final Pattern DASH_UNDERSCORE = Pattern.compile("[_-]");
   /** Reload listener to clear names on resource pack reload */
@@ -36,7 +36,7 @@ public class DomainDisplayName {
   private static String nameForUncached(String domain) {
     // first, check if the resource pack translated the thing
     String langKey = "domain." + domain + ".display_name";
-    String translated = ForgeI18n.getPattern(langKey);
+    String translated = Language.getInstance().getOrDefault(langKey);
     if (!translated.equals(langKey)) {
       return translated;
     }

@@ -2,7 +2,7 @@ package slimeknights.tconstruct.tools.data.material;
 
 import net.minecraft.data.PackOutput;
 import net.minecraft.world.item.DyeColor;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import slimeknights.tconstruct.library.client.data.material.AbstractMaterialRenderInfoProvider;
 import slimeknights.tconstruct.library.client.data.material.AbstractMaterialSpriteProvider;
 import slimeknights.tconstruct.library.materials.definition.IMaterial;
@@ -178,6 +178,6 @@ public class MaterialRenderInfoProvider extends AbstractMaterialRenderInfoProvid
 
   @Override
   public String getName() {
-    return "Tinkers' Construct Material Render Info Provider";
+    return "Neo Tinkers Material Render Info Provider";
   }
 }

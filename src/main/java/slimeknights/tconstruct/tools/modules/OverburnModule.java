@@ -1,6 +1,5 @@
 package slimeknights.tconstruct.tools.modules;
 
-import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -8,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.data.loadable.record.SingletonLoader;
 import slimeknights.tconstruct.library.modifiers.Modifier;
 import slimeknights.tconstruct.library.modifiers.ModifierEntry;
@@ -36,9 +35,12 @@ public enum OverburnModule implements ModifierModule, InventoryTickModifierHook,
   INSTANCE;
 
   private static final List<ModuleHook<?>> DEFAULT_HOOKS = HookProvider.<OverburnModule>defaultHooks(ModifierHooks.INVENTORY_TICK, ModifierHooks.REMOVE);
+  public static final SingletonLoader<OverburnModule> LOADER = new SingletonLoader<>(INSTANCE);
 
-  @Getter
-  private final SingletonLoader<OverburnModule> loader = new SingletonLoader<>(this);
+  @Override
+  public SingletonLoader<OverburnModule> getLoader() {
+    return LOADER;
+  }
 
   @Override
   public List<ModuleHook<?>> getDefaultHooks() {

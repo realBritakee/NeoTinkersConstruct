@@ -1,11 +1,11 @@
 package slimeknights.tconstruct.tools.modifiers.effect;
 
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.neoforged.neoforge.common.EffectCure;
 import slimeknights.tconstruct.common.TinkerEffect;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
 /**
  * Effect that cannot be cured with milk
@@ -17,7 +17,9 @@ public class NoMilkEffect extends TinkerEffect {
   }
 
   @Override
-  public List<ItemStack> getCurativeItems() {
-    return new ArrayList<>();
+  public void fillEffectCures(Set<EffectCure> cures, MobEffectInstance effectInstance) {
+    // 1.21: cures are data-driven via this hook. Clear them so this effect (and subclasses) cannot be cured
+    // by milk or anything else, restoring the original NoMilkEffect behavior.
+    cures.clear();
   }
 }

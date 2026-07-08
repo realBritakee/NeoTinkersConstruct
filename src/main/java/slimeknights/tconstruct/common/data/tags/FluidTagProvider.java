@@ -6,8 +6,8 @@ import net.minecraft.data.tags.FluidTagsProvider;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.registration.object.FlowingFluidObject;
 import slimeknights.mantle.registration.object.FluidObject;
@@ -236,7 +236,7 @@ public class FluidTagProvider extends FluidTagsProvider {
 
   @Override
   public String getName() {
-    return "Tinkers Construct Fluid TinkerTags";
+    return "Neo Tinkers Fluid TinkerTags";
   }
 
   /** Adds tags for an unplacable fluid */

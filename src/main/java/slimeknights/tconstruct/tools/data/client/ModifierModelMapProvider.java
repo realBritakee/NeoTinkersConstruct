@@ -230,7 +230,7 @@ public class ModifierModelMapProvider extends AbstractModifierModelMapProvider {
 
     // plate armor
     ModifierId dyed = TinkerModifiers.dyed.getId();
-    for (ArmorItem.Type type : ArmorItem.Type.values()) {
+    for (ArmorItem.Type type : new ArmorItem.Type[]{ArmorItem.Type.HELMET, ArmorItem.Type.CHESTPLATE, ArmorItem.Type.LEGGINGS, ArmorItem.Type.BOOTS}) { // 1.21 BODY type unused by Tinkers armor
       String root = "armor/plate/" + type.getName() + "/maille";
       String item = "plate/" + type.getName();
       tool(item).modifier(dyed, new MaterialHasFallbackModifierModel(1,
@@ -256,7 +256,7 @@ public class ModifierModelMapProvider extends AbstractModifierModelMapProvider {
     tool("travelers/goggles").customTrim("armor/travelers/goggles", null);
 
     // slimesuit
-    for (ArmorItem.Type type : ArmorItem.Type.values()) {
+    for (ArmorItem.Type type : new ArmorItem.Type[]{ArmorItem.Type.HELMET, ArmorItem.Type.CHESTPLATE, ArmorItem.Type.LEGGINGS, ArmorItem.Type.BOOTS}) { // 1.21 BODY type unused by Tinkers armor
       tool("slime/" + type.getName()).trim(type);
     }
     tool("slime/wings").modifier(TinkerModifiers.trim.getId(), new TrimModifierModel.Custom(toolMaterial("armor/slime/wings/trim").texture(), null));
@@ -290,7 +290,7 @@ public class ModifierModelMapProvider extends AbstractModifierModelMapProvider {
 
   @Override
   public String getName() {
-    return "Tinkers' Construct Modifier Model Map Provider";
+    return "Neo Tinkers Modifier Model Map Provider";
   }
 
   /** Adds dyed textures for travelers gear */

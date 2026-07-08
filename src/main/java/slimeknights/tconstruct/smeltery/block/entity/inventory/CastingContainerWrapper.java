@@ -5,7 +5,7 @@ import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.tconstruct.library.recipe.casting.ICastingContainer;
 import slimeknights.tconstruct.smeltery.block.entity.CastingBlockEntity;
 
@@ -38,7 +38,14 @@ public class CastingContainerWrapper implements ICastingContainer {
   @Nullable
   @Override
   public CompoundTag getFluidTag() {
-    return fluid.getTag();
+    // FluidStack is component-backed in 1.21; the legacy CompoundTag fluid-NBT abstraction no longer exists.
+    // Recipes that need potion data should read it through getFluidStack() and DataComponents instead.
+    return null;
+  }
+
+  @Override
+  public FluidStack getFluidStack() {
+    return fluid;
   }
 
   /** Uses the input for input (default) */
